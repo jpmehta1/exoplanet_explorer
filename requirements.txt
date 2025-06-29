@@ -1,0 +1,6 @@
+pandas
+notebook
+snowflake-connector-python
+snowflake-sqlalchemy
+sqlalchemy
+

@@ -1,0 +1,23 @@
+version: 2
+
+models:
+  - name: transform_exoplanet
+    description: "Cleaned and transformed exoplanet data (renamed, missing handled, PL_EQT not null)"
+    columns:
+      - name: right_ascension_deg
+        description: "RA of host star (degrees)"
+      - name: declination_deg
+        description: "DEC of host star (degrees)"
+      - name: planet_eq_temperature_k
+        description: "Equilibrium temperature of planet (Kelvin)"
+      - name: star_metallicity_dex
+        description: "Metallicity of host star [Fe/H]"
+      - name: discovery_method
+        description: "Planet discovery method"
+      - name: controversial_flag
+        description: "1 = controversial, 0 = confirmed"
+      - name: orbital_axis_limit
+        description: "Semi-major axis limit"
+      - name: orbital_eccentricity_limit
+        description: "Orbital eccentricity limit"
+
