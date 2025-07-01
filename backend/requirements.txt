@@ -1,0 +1,12 @@
+pandas
+notebook
+snowflake-connector-python
+snowflake-sqlalchemy
+sqlalchemy
+fastapi
+uvicorn
+faiss-cpu
+sentence-transformers
+google-generativeai
+python-multipart
+
