@@ -1,0 +1,154 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+body {
+  margin: 0;
+  font-family: 'Orbitron', 'Digital Numbers', monospace, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #000000;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* Custom animations */
+@keyframes float {
+  0%, 100% { 
+    transform: translateY(0px) rotate(0deg); 
+  }
+  50% { 
+    transform: translateY(-20px) rotate(180deg); 
+  }
+}
+
+@keyframes floatOnly {
+  0%, 100% { 
+    transform: translateY(-50px); 
+  }
+  50% { 
+    transform: translateY(-70px); 
+  }
+}
+
+@keyframes spin {
+  0% { 
+    transform: rotate(0deg); 
+  }
+  100% { 
+    transform: rotate(360deg); 
+  }
+}
+
+@keyframes orbitRight {
+  0% {
+    transform: rotate(0deg) translateX(266px) rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg) translateX(266px) rotate(-360deg);
+  }
+}
+
+@keyframes blinkStar {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@keyframes cometFly {
+  0% {
+    transform: translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100vw);
+    opacity: 0;
+  }
+}
+
+@keyframes cometFlyRtl {
+  0% {
+    transform: translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-100vw);
+    opacity: 0;
+  }
+}
+
+.planet-orbit-right {
+  animation: orbitRight 12s linear infinite;
+  transform-origin: calc(50% - 266px) 50%;
+}
+
+.star-blink {
+  animation-name: blinkStar;
+}
+
+/* Accessibility improvements */
+* {
+  font-family: 'Orbitron', 'Digital Numbers', monospace !important;
+}
+
+/* Focus styles for better accessibility */
+button:focus,
+textarea:focus,
+input:focus {
+  outline: 2px solid #f59e0b;
+  outline-offset: 2px;
+}
+
+/* Reduced motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .bg-opacity-16 {
+    background-opacity: 0.3 !important;
+  }
+  
+  .bg-opacity-24 {
+    background-opacity: 0.4 !important;
+  }
+  
+  .bg-opacity-32 {
+    background-opacity: 0.5 !important;
+  }
+  
+  .bg-opacity-48 {
+    background-opacity: 0.7 !important;
+  }
+  
+  .bg-opacity-64 {
+    background-opacity: 0.9 !important;
+  }
+}
