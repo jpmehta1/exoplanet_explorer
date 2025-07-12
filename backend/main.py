@@ -1,5 +1,5 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import Response
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel
 import numpy as np
 import pickle
@@ -8,6 +8,8 @@ import requests
 import json
 from sentence_transformers import SentenceTransformer
 import re
+import os
+from typing import Optional, AsyncGenerator
 
 app = FastAPI()
 
@@ -44,6 +46,9 @@ print(f"✅ Loaded FAISS index with {index.ntotal} Q&A entries")
 
 class QueryRequest(BaseModel):
     query: str
+    password: Optional[str] = None
+
+AI_PASSWORD = os.environ.get("AI_PASSWORD", "changeme")
 
 def retrieve_relevant_context(query: str, top_k: int = 3) -> list:
     """Retrieve most relevant Q&A entries for a given query"""
@@ -159,38 +164,58 @@ def deduplicate_answer(answer):
 
 @app.post("/ask")
 async def ask_question(request: QueryRequest):
+    if not request.password or request.password != AI_PASSWORD:
+        raise HTTPException(status_code=403, detail="Invalid password")
     print("[ASK] Received query:", request.query)
-    """Main endpoint to ask questions about exoplanet data or general space questions"""
-    try:
-        # Retrieve relevant context
-        relevant_entries = retrieve_relevant_context(request.query, top_k=3)
-        
-        # Filter context as before
-        filtered_entries = []
-        for entry in relevant_entries:
-            if len(entry['answer']) > 1000:
-                continue
-            if any(keyword in entry['question'].lower() for keyword in ['average', 'count', 'total', 'percentage', 'standard deviation']):
-                filtered_entries.append(entry)
-            elif len(entry['answer']) < 500:
-                filtered_entries.append(entry)
-        if not filtered_entries:
-            filtered_entries = relevant_entries[:2]
-        
-        # If we have relevant context, use the dataset prompt
-        if filtered_entries:
-            answer = ask_ollama_with_context(request.query, filtered_entries)
-            answer = clean_think_sections(answer)
-            answer = deduplicate_answer(answer)
-            print("[ASK] Returning answer:", answer)
-            return answer
-        else:
-            # No relevant context, use general knowledge prompt
-            prompt = f"""You are a helpful AI assistant that specializes in space and astronomy. There is no relevant data in the NASA exoplanet dataset for this question. Please answer using your general knowledge about space, and mention that this answer is not from the dataset.
-
-User Question: {request.query}
-"""
-            try:
+    
+    def stream_ollama_response():
+        try:
+            # Retrieve relevant context
+            relevant_entries = retrieve_relevant_context(request.query, top_k=3)
+            # Filter context as before
+            filtered_entries = []
+            for entry in relevant_entries:
+                if len(entry['answer']) > 1000:
+                    continue
+                if any(keyword in entry['question'].lower() for keyword in ['average', 'count', 'total', 'percentage', 'standard deviation']):
+                    filtered_entries.append(entry)
+                elif len(entry['answer']) < 500:
+                    filtered_entries.append(entry)
+            if not filtered_entries:
+                filtered_entries = relevant_entries[:2]
+            # If we have relevant context, use the dataset prompt
+            if filtered_entries:
+                # Build context string
+                context_text = ""
+                for i, entry in enumerate(filtered_entries, 1):
+                    context_text += f"Context {i}:\nQuestion: {entry['question']}\nAnswer: {entry['answer']}\n\n"
+                prompt = f"""You are a helpful AI assistant that specializes in NASA exoplanet data. Only answer queries related to space, astronomy, or exoplanets.\n\nCRITICAL: You MUST parse the JSON data in the context to find answers. Do NOT make calculations or assumptions.\n\nSTEP-BY-STEP INSTRUCTIONS:\n1. Look at the \"Answer\" field in each context entry\n2. If the Answer contains JSON data like [{{\"DISCOVERY_METHOD\": \"Transit\", \"AVG_PLANET_EQ_TEMP_K\": 920.7470183044}}]\n3. Extract the exact value that matches the user's question\n4. Present that exact value as your answer\n\nEXAMPLE:\nUser asks: \"What is the average temperature for Transit method?\"\nContext contains: [{{\"DISCOVERY_METHOD\": \"Transit\", \"AVG_PLANET_EQ_TEMP_K\": 920.7470183044}}]\nYour answer: \"The average temperature of exoplanets discovered by the Transit method is 920.75K.\"\n\nContext provided:\n{context_text}\n\nUser Question: {request.query}\n\nRemember: Look for JSON data in the Answer fields and extract the exact values. Do not calculate or estimate.\n\n(You specialize in NASA exoplanet data.)"""
+                response = requests.post(
+                    "http://localhost:11434/api/generate",
+                    json={
+                        "model": "mistral:7b",
+                        "prompt": prompt,
+                        "stream": True
+                    },
+                    timeout=30,
+                    stream=True
+                )
+                if response.status_code == 200:
+                    for line in response.iter_lines():
+                        if line:
+                            try:
+                                chunk = json.loads(line.decode('utf-8'))
+                                if 'response' in chunk:
+                                    yield json.dumps({"response": chunk['response']}) + "\n"
+                                if chunk.get('done', False):
+                                    break
+                            except json.JSONDecodeError:
+                                continue
+                else:
+                    yield json.dumps({"response": f"Error calling Ollama: {response.status_code}"}) + "\n"
+            else:
+                # No relevant context, use general knowledge prompt
+                prompt = f"""You are a helpful AI assistant that specializes in space and astronomy. There is no relevant data in the NASA exoplanet dataset for this question. Please answer using your general knowledge about space, and mention that this answer is not from the dataset.\n\nUser Question: {request.query}\n"""
                 response = requests.post(
                     "http://localhost:11434/api/generate",
                     json={
@@ -198,30 +223,25 @@ User Question: {request.query}
                         "prompt": prompt,
                         "stream": True
                     },
-                    timeout=30
+                    timeout=30,
+                    stream=True
                 )
                 if response.status_code == 200:
-                    full_response = ""
                     for line in response.iter_lines():
                         if line:
                             try:
                                 chunk = json.loads(line.decode('utf-8'))
                                 if 'response' in chunk:
-                                    full_response += chunk['response']
+                                    yield json.dumps({"response": chunk['response']}) + "\n"
                                 if chunk.get('done', False):
                                     break
                             except json.JSONDecodeError:
                                 continue
-                    return {
-                        "answer": full_response if full_response else 'No response from model',
-                        "context_used": []
-                    }
                 else:
-                    return {"answer": f"Error calling Ollama: {response.status_code}", "context_used": []}
-            except requests.exceptions.RequestException as e:
-                return {"answer": f"Error connecting to Ollama: {str(e)}", "context_used": []}
-    except Exception as e:
-        return {"error": f"An error occurred: {str(e)}"}
+                    yield json.dumps({"response": f"Error calling Ollama: {response.status_code}"}) + "\n"
+        except Exception as e:
+            yield json.dumps({"response": f"An error occurred: {str(e)}"}) + "\n"
+    return StreamingResponse(stream_ollama_response(), media_type="application/jsonl")
 
 @app.get("/health")
 async def health_check():

@@ -107,9 +107,6 @@ code {
 }
 
 /* Accessibility improvements */
-* {
-  font-family: 'Orbitron', 'Digital Numbers', monospace !important;
-}
 
 /* Focus styles for better accessibility */
 button:focus,

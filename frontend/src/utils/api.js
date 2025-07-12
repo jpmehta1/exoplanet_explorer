@@ -67,22 +67,22 @@ export const apiRequest = async (endpoint, options = {}) => {
 };
 
 // Specific API functions
-export const askQuestion = async (query) => {
+export const askQuestion = async (query, password) => {
   return apiRequest('/ask', {
     method: 'POST',
-    body: JSON.stringify({ query: query.trim() }),
+    body: JSON.stringify({ query: query.trim(), password }),
   });
-}; 
+};
 
 // Streaming API function for /ask endpoint
-export const askQuestionStream = async (query, onChunk) => {
+export const askQuestionStream = async (query, onChunk, password) => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
 
   try {
     const response = await fetch(`${API_BASE_URL}/ask`, {
       method: 'POST',
-      body: JSON.stringify({ query: query.trim() }),
+      body: JSON.stringify({ query: query.trim(), password }),
       headers: { 'Content-Type': 'application/json' },
       signal: controller.signal,
     });
@@ -101,15 +101,14 @@ export const askQuestionStream = async (query, onChunk) => {
       const { value, done: doneReading } = await reader.read();
       if (value) {
         let chunk = decoder.decode(value, { stream: true });
-        // Try to parse JSON lines (backend streams JSON objects per line)
         chunk.split(/\r?\n/).forEach(line => {
-          if (line.trim()) {
+          if (line) {
             try {
               const obj = JSON.parse(line);
               if (obj.response) {
-                // Filter out <think>...</think> or 'thought process' sections
-                let filtered = obj.response.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/\n{2,}/g, '\n').trim();
-                if (filtered) {
+                // Filter out <think>...</think> or 'thought process' sections, but do NOT trim whitespace
+                let filtered = obj.response.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/\n{2,}/g, '\n');
+                if (filtered !== undefined && filtered !== null) {
                   onChunk(filtered);
                   fullText += filtered;
                 }

@@ -9,11 +9,12 @@ import pandas as pd
 import snowflake.connector
 import matplotlib.pyplot as plt
 import pickle
+import os
 # connector 
 conn = snowflake.connector.connect(
-    user = "MEHTAJEETPARESH",
-    password = "Jeetmehta12345",
-    account = "xo45240.us-central1.gcp",
+    user = os.environ.get("SNOWFLAKE_USER"),
+    password = os.environ.get("SNOWFLAKE_PASSWORD"),
+    account = os.environ.get("SNOWFLAKE_ACCOUNT"),
     role = 'NASA_ROLE',
     warehouse = "COMPUTE_WH",
     database = "NASA_PROJECT",

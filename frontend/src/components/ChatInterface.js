@@ -11,6 +11,11 @@ const ChatBubble = ({ message, isUser }) => (
       style={{
         borderBottomRightRadius: isUser ? '0.5rem' : '1.5rem',
         borderBottomLeftRadius: isUser ? '1.5rem' : '0.5rem',
+        wordBreak: 'break-word',
+        whiteSpace: 'pre-wrap',
+        overflowWrap: 'anywhere',
+        letterSpacing: '0.01em',
+        lineHeight: 1.6,
       }}
     >
       {message}
