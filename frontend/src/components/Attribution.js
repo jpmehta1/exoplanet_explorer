@@ -1,6 +1,30 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 
 const Attribution = () => {
+  const audioRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  const handleToggle = () => {
+    if (!isPlaying) {
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play();
+        setIsPlaying(true);
+      }
+    } else {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        setIsPlaying(false);
+      }
+    }
+  };
+
+  // When the song ends, reset button to play
+  const handleEnded = () => {
+    setIsPlaying(false);
+  };
+
   return (
     <div className="absolute bottom-2 sm:bottom-4 left-1/2 transform -translate-x-1/2 px-4 z-20">
       <button
@@ -9,9 +33,11 @@ const Attribution = () => {
         tabIndex={0}
         type="button"
         aria-label="Astrothunder attribution"
+        onClick={handleToggle}
       >
-        PLAY ASTROTHUNDER BY TRAVIS SCOTT
+        {isPlaying ? 'STOP ASTROTHUNDER' : 'PLAY ASTROTHUNDER BY TRAVIS SCOTT'}
       </button>
+      <audio ref={audioRef} src="/astrothunder.mp3" onEnded={handleEnded} />
       <style>{`
         .attribution-glow-btn {
           background: rgba(127,29,29,0.5) !important;
@@ -30,4 +56,4 @@ const Attribution = () => {
   );
 };
 
-export default Attribution; 
+export default Attribution;

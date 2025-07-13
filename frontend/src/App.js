@@ -118,7 +118,7 @@ function App() {
         </div>
       )}
       {/* Central orbital system */}
-      <div className="absolute inset-0 flex items-center justify-center z-10" style={{marginLeft: '-40px'}}>
+      <div className="absolute inset-0 flex items-center justify-center z-10">
         <div className="relative w-96 h-96 md:w-[600px] md:h-[600px]">
           <div className="absolute inset-0 flex items-center justify-center">
             {/* Oval orbital gradient */}
